@@ -1,0 +1,8 @@
+venv/
+.pytest_cache__/
+**__pycache__/
+*.pyc
+.env
+db.sqlite3
+.vscode
+barcodes/
