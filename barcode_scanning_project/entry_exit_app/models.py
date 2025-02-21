@@ -1,4 +1,10 @@
 from django.db import models
+import os
+
+def getFilename(rollno, filename):
+    extension = filename.split('.')[-1]
+    new_filename = f"{rollno}.{extension}"
+    return os.path.join('students/', new_filename)
 
 class Department(models.Model):
     name = models.CharField(max_length=100)
@@ -44,6 +50,7 @@ class Student(models.Model):
     address = models.TextField()
     barcode = models.ImageField(upload_to='barcodes/', null=True, blank=True, editable=False)
     is_active = models.BooleanField(default=True)
+    profile_image = models.ImageField(upload_to=getFilename, null=True, blank=True, default='media/students/default.jpg')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -55,5 +62,5 @@ class EntryExit(models.Model):
     entry_time = models.DateTimeField(auto_now_add=True)
     exit_time = models.DateTimeField(null=True, blank=True) 
 
-    def __str__(self):
-        return self.barcode
+    # def __str__(self):
+    #     return self.student.name

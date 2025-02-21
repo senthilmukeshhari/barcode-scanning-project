@@ -13,7 +13,7 @@ def generate_departments():
         deptObj.save()
 
 def generate_students(n):
-    for i in range(n):
+    for i in range(1,n+1):
         rollno = i
         name = fake.name()
         email = fake.email()
