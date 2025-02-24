@@ -6,9 +6,9 @@ import json
 
 def get_status_and_users_in_lab():
     today = now().date()
-    students = EntryExit.objects.filter(student__is_active=True, entry_time__date=today,  exit_time__isnull=True)
-    students_in_lab = students.count()
-    lab_status =f'There are {students_in_lab} user(s) in the lab.' if students_in_lab > 0 else 'No one in the lab currently.'
+    students = EntryExit.objects.filter(entry_time__date=today,  exit_time__isnull=True)
+    students_in_lab = EntryExit.objects.filter(entry_time__date=today).count()
+    lab_status =f'There are {students.count()} user(s) in the lab.' if students.count() > 0 else 'No one in the lab currently.'
     return students_in_lab, lab_status
 
 def get_initial_notifications():
@@ -76,8 +76,14 @@ def scan_barcode(request):
 
         except json.JSONDecodeError:
             return JsonResponse({'message': 'Invalid JSON data'}, status=400)
+        except Student.DoesNotExist as s:
+            print('Does not : ', s)
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid barcode'
+            }, status=400)
         except Exception as e:
-            print(e)
+            print('error : ', e)
             return JsonResponse({
                 'status': 'error',
                 'message': 'Invalid barcode or student is inactive.'
