@@ -25,7 +25,7 @@ def context_data():
     students_in_lab, lab_status = get_status_and_users_in_lab()
     notifications = get_initial_notifications()
     context = {
-        'website_name' : 'Barcode Entry/Exit System',
+        'website_name' : 'College Lab Entry/Exit System',
         'students_in_lab' : students_in_lab,
         'lab_status': lab_status,
         'notifications': notifications

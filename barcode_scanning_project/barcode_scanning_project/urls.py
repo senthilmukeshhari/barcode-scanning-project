@@ -3,6 +3,9 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+admin.site.site_header = 'College Lab Entry/Exit System'
+admin.site.site_title = 'College Lab Entry/Exit System'
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('entry_exit_app.urls')),

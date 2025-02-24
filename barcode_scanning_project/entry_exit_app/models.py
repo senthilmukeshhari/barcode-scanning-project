@@ -54,6 +54,9 @@ class Student(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ['rollno']
+
     def __str__(self):
         return self.name
 
@@ -62,5 +65,5 @@ class EntryExit(models.Model):
     entry_time = models.DateTimeField(auto_now_add=True)
     exit_time = models.DateTimeField(null=True, blank=True) 
 
-    # def __str__(self):
-    #     return self.student.name
+    def __str__(self):
+        return str(self.student)

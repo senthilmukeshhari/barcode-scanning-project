@@ -6,4 +6,3 @@ venv/
 db.sqlite3
 .vscode
 barcodes/
-barcodes/
