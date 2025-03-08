@@ -1,5 +1,6 @@
 from pathlib import Path
-from dotenv  import load_dotenv
+from dotenv import load_dotenv
+from django.templatetags.static import static
 import os
 
 load_dotenv()
@@ -137,6 +138,9 @@ UNFOLD = {
     #     "light": lambda request: static("logo-light.svg"),  # light mode
     #     "dark": lambda request: static("logo-dark.svg"),  # dark mode
     # },
+    "LOGIN": {
+        "image": lambda request: static("images/BGImage.png")
+    },
     "SITE_SYMBOL": "computer",  # symbol from icon set
     "SHOW_HISTORY": True, # show/hide "History" button, default: True
     "SHOW_VIEW_ON_SITE": True, # show/hide "View on site" button, default: True
@@ -187,30 +191,4 @@ UNFOLD = {
             },
         },
     },
-    # "SIDEBAR": {
-    #     "show_search": False,  # Search in applications and models names
-    #     "show_all_applications": False,  # Dropdown with all applications and models
-    # #     "navigation": [
-    # #         {
-    # #             "title": _("Navigation"),
-    # #             "separator": True,  # Top border
-    # #             "collapsible": True,  # Collapsible group of links
-    # #             "items": [
-    # #                 {
-    # #                     "title": _("Dashboard"),
-    # #                     "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
-    # #                     "link": reverse_lazy("admin:index"),
-    # #                     "badge": "sample_app.badge_callback",
-    # #                     "permission": lambda request: request.user.is_superuser,
-    # #                 },
-    # #                 {
-    # #                     "title": _("Users"),
-    # #                     "icon": "people",
-    # #                     "link": reverse_lazy("admin:auth_user_changelist"),
-    # #                 },
-    # #             ],
-    # #         },
-    # #     ],
-    # }
-   
 }

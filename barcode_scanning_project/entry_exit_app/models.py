@@ -48,9 +48,9 @@ class Student(models.Model):
     bloodgroup = models.CharField(max_length=10, choices=bloodgroup_choices)
     gender = models.CharField(choices=gender_choices, max_length=10)
     address = models.TextField()
-    barcode = models.ImageField(upload_to='barcodes/', null=True, blank=True, editable=False)
+    barcode = models.ImageField(upload_to='barcodes/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
-    profile_image = models.ImageField(upload_to=getFilename, null=True, blank=True, default='media/students/default.jpg')
+    profile_image = models.ImageField(upload_to=getFilename, null=True, blank=True, default='students/default.jpg')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,3 +67,22 @@ class EntryExit(models.Model):
 
     def __str__(self):
         return str(self.student)
+    
+    @property
+    def time_spend_in_lab(self):
+        time_spend = "Not Exit"
+        if self.exit_time:
+            duration = self.entry_time - self.exit_time
+            total_seconds = int(duration.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            seconds = total_seconds % 60
+            parts = []
+            if hours > 0:
+                parts.append(f"{hours} hours")
+            if minutes > 0:
+                parts.append(f"{minutes} minutes")
+            if seconds > 0:
+                parts.append(f"{seconds} seconds")
+            time_spend = ' '.join(parts)
+        return time_spend

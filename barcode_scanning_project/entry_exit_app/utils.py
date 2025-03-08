@@ -5,7 +5,7 @@ import random
 fake = Faker()
 
 def generate_departments():
-    departments = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL']
+    departments = ['BCA', 'BCS', 'B.sc(IT)', 'B.Com', 'B.A Tamil']
     for department in departments:
         deptObj = Department.objects.filter(name=department)
         if not deptObj.exists():

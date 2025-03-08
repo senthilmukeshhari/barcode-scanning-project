@@ -86,5 +86,5 @@ def scan_barcode(request):
             print('error : ', e)
             return JsonResponse({
                 'status': 'error',
-                'message': 'Invalid barcode or student is inactive.'
+                'message': 'Invalid barcode' + barcode + ' or student is inactive.'
             }, status=400)
