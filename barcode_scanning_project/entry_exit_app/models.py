@@ -72,7 +72,7 @@ class EntryExit(models.Model):
     def time_spend_in_lab(self):
         time_spend = "Not Exit"
         if self.exit_time:
-            duration = self.entry_time - self.exit_time
+            duration = self.exit_time - self.entry_time
             total_seconds = int(duration.total_seconds())
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60

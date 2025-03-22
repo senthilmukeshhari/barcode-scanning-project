@@ -14,9 +14,29 @@
   <h1>Computer Lab Entry/Exit System</h1>
 </header>
 {% endblock %} {% block content %}
+<style>
+  #scanner-container {
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    border: 2px solid #000;
+    margin: auto;
+    position: relative;
+  }
+  #barcode-result {
+      font-size: 20px;
+      margin-top: 10px;
+  }
+  button {
+    margin-top: 10px;
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+</style>
 <div class="container">
-  <label for="scanInput">Scan Barcoede or Enter Roll No</label>
-  <div class="barcode-scan-group">
+  <!-- <label for="scanInput">Scan Barcoede or Enter Roll No</label> -->
+  <!-- <div class="barcode-scan-group">
     <input
       type="text"
       id="scanInput"
@@ -27,7 +47,11 @@
     <button type="button" id="scanBtn" onclick="scanningProcess(event)">
       Scan
     </button>
-  </div>
+  </div> -->
+  <!-- <div id="scanner-container"></div> -->
+  <p id="barcode-result">Scan a barcode...</p>
+  <!-- <button onclick="startScanner()" class="btn btn-primary">Start Scanning</button>
+  <button onclick="stopScanner()" class="btn btn-primary">Stop Scanning</button> -->
 
   <div id="resultContainer">
     <!-- This will be populated with student details after scanning -->
@@ -56,13 +80,12 @@
   </div>
 </div>
 {% endblock %} {% block scripts %}
+<script src="{% static 'js/quagga.min.js' %}"></script>
 <script>
   const scaninputEl = document.getElementById("scanInput");
 
-  const scanningProcess = (e) => {
-    if (e.key === "Enter" || e.type === "click") {
-      const barcodeValue = scaninputEl.value;
-
+  const scanningBarcode = (value) => {
+      const barcodeValue = value;
       fetch("{% url 'scan_barcode' %}", {
         method: "POST",
         headers: {
@@ -111,11 +134,58 @@
           notification.innerText = `User ${data.student} ${res.status === "entry" ? "entered" : "exited"} the lab.`;
           notifications.prepend(notification);
 
-          scaninputEl.value = "";
-          scaninputEl.focus();
+          // scaninputEl.value = "";
+          // scaninputEl.focus();
         })
         .catch((error) => console.error("Error : ", error));
-    }
+    // }
   };
+
+  var barcode = "";
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') {
+      console.log('Barcode : ', barcode)
+      scanningBarcode(barcode);
+      barcode = '';
+    } else {
+      barcode = barcode + e.key;
+    }
+  });
+
+  // function startScanner() {
+  //       Quagga.init({
+  //           inputStream: {
+  //               name: "Live",
+  //               type: "LiveStream",
+  //               target: document.querySelector("#scanner-container"),
+  //               constraints: {
+  //                   // width: 500,
+  //                   // height: 300,
+  //                   facingMode: "environment" // Use the back camera
+  //               }
+  //           },
+  //           decoder: {
+  //               readers: ["ean_reader", "code_128_reader", "upc_reader"]
+  //           }
+  //       }, function (err) {
+  //           if (err) {
+  //               console.error("QuaggaJS Error:", err);
+  //               return;
+  //           }
+  //           Quagga.start();
+  //       });
+
+  //       Quagga.onDetected(function (result) {
+  //           document.getElementById("barcode-result").innerText = "Barcode: " + result.codeResult.code;
+  //           scanningProcess(result.codeResult.code);
+  //           setTimeout(() => {
+  //               document.getElementById("barcode-result").innerText = "Scanning Barcode.."
+  //           }, 1000)
+  //       });
+  //   }
+
+  //   function stopScanner() {
+  //       Quagga.stop();
+  //   }
 </script>
 {% endblock %}

@@ -53,6 +53,7 @@ def scan_barcode(request):
         try:
             data = json.loads(request.body)
             barcode = data['barcode']
+            print('barcode : ', barcode)
             student = get_object_or_404(Student, rollno=barcode, is_active=True)
 
             open_log = EntryExit.objects.filter(student=student, exit_time__isnull=True).first()

@@ -28,7 +28,7 @@ def generate_students(n):
             bloodgroup = random.choice(['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'])
             gender = random.choice(['Male', 'Female', 'Other'])
             address = fake.address()
-            is_active = random.choice([True, False])
+            is_active = True
             student = Student.objects.create(rollno=rollno, name=name, email=email, phoneno=phoneno, department=department, section=section, dob=dob, bloodgroup=bloodgroup, gender=gender, address=address, is_active=is_active)
             student.save()
         else:
