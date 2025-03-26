@@ -76,15 +76,15 @@ def scan_barcode(request):
 
         except json.JSONDecodeError:
             return JsonResponse({'message': 'Invalid JSON data'}, status=400)
-        except Student.DoesNotExist as s:
-            print('Does not : ', s)
+        except Student.DoesNotExist:
+            print('Does not : ')
             return JsonResponse({
                 'status': 'error',
-                'message': 'Invalid barcode'
+                'message': 'barcode'
             }, status=400)
         except Exception as e:
             print('error : ', e)
             return JsonResponse({
                 'status': 'error',
-                'message': 'Invalid barcode' + barcode + ' or student is inactive.'
+                'message': 'Invalid barcode'
             }, status=400)

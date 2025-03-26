@@ -14,12 +14,6 @@ class StudentResource(resources.ModelResource):
         fields = ('rollno', 'name', 'department', 'section', 'email', 'phoneno', 'dob', 'bloodgroup', 'gender', 'address', 'is_active', 'created_at', 'updated_at')
 
 class EntryExitResource(resources.ModelResource):
-    student = fields.Field(
-        column_name='student',
-        attribute= 'student',
-        widget= ForeignKeyWidget(Student, 'name')
-    )
-
     class Meta:
         model = EntryExit
-        fields = ('student', 'entry_time', 'exit_time')
+        fields = ('student', 'student__name', 'student__department__name', 'student__section', 'entry_time', 'exit_time')

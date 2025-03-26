@@ -15,18 +15,19 @@
 </header>
 {% endblock %} {% block content %}
 <div class="container">
-  <label for="scanInput">Scan Barcoede or Enter Roll No</label>
+  <label for="scanInput">Scan Barcoede <span id="barcode"></span></label>
   <div class="barcode-scan-group">
     <input
       type="text"
       id="scanInput"
-      placeholder="Scan barcode or Enter manually"
+      placeholder="Scan barcode"
       autofocus="true"
       onkeydown="scanningProcess(event)"
+      readonly
     />
-    <button type="button" id="scanBtn" onclick="scanningProcess(event)">
+    <!-- <button type="button" id="scanBtn" onclick="scanningProcess(event)">
       Scan
-    </button>
+    </button> -->
   </div>
 
   <div id="resultContainer">
@@ -58,11 +59,17 @@
 {% endblock %} {% block scripts %}
 <script>
   const scaninputEl = document.getElementById("scanInput");
+  const barcode = document.getElementById("barcode");
+  var barcodeValue = '';
 
   const scanningProcess = (e) => {
+    if (e.key != 'Enter') {
+      barcodeValue += e.key;
+    }
     if (e.key === "Enter" || e.type === "click") {
-      const barcodeValue = scaninputEl.value;
-
+      // const barcodeVal = scaninputEl.value;
+      console.log(barcodeValue);
+      barcode.innerText = "( " + barcodeValue + " )";
       fetch("{% url 'scan_barcode' %}", {
         method: "POST",
         headers: {
@@ -81,7 +88,6 @@
             return
           }
           const data = res.data;
-          console.log("Data : ", data);
           const resultContainer = document.querySelector("#resultContainer");
           let result = `
             <div class="result ${res.status}">
@@ -112,9 +118,11 @@
           notifications.prepend(notification);
 
           scaninputEl.value = "";
+          barcode.innerText = "";
           scaninputEl.focus();
         })
         .catch((error) => console.error("Error : ", error));
+        barcodeValue = '';
     }
   };
 </script>
