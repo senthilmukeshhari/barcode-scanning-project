@@ -23,7 +23,6 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    # 'jazzmin',
     "unfold",  # before django.contrib.admin
     "unfold.contrib.import_export",  # optional, if django-import-export package is used
     "unfold.contrib.filters",  # optional, if special filters are needed

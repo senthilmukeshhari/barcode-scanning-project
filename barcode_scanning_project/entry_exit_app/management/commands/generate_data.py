@@ -8,5 +8,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         generate_departments()
         print('Departments Data generated successfully')
-        generate_students(100)
+        generate_students(27)
         print('Students Data generated successfully')

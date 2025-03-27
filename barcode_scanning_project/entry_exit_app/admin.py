@@ -7,7 +7,7 @@ from .resources import StudentResource, EntryExitResource
 
 from unfold.admin import ModelAdmin as UnfoldModalAdmin
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
-from unfold.contrib.import_export.forms import ImportForm,ExportForm, SelectableFieldsExportForm
+from unfold.contrib.import_export.forms import ImportForm, ExportForm, SelectableFieldsExportForm
 from unfold.contrib.filters.admin import RangeDateFilter, RangeDateTimeFilter
 from unfold.contrib.filters.admin import ChoicesDropdownFilter, MultipleChoicesDropdownFilter
 
@@ -38,10 +38,10 @@ class UserAdmin(BaseUserAdmin, UnfoldModalAdmin):
 
 @admin.register(Student)
 class StudentAdmin(UnfoldModalAdmin, ExportActionModelAdmin):
-    list_display = ('rollno', 'name', 'department', 'section', 'dob', 'is_active')
+    list_display = ('rollno', 'name', 'department', 'section', 'dob', 'admission_year', 'is_active')
     search_fields = ('rollno__iexact', 'name')
     search_help_text = 'Search by student rollno or name'
-    list_filter = ('department', 'section', 'is_active')
+    list_filter = ('department', 'section', 'admission_year', 'is_active')
     list_per_page = 20
     actions = [activate_students, deactivate_students]
     change_form_show_cancel_button = True 
@@ -60,18 +60,30 @@ class DepartmentAdmin(UnfoldModalAdmin, ExportActionModelAdmin):
     change_form_show_cancel_button = True 
     export_form_class = SelectableFieldsExportForm
 
+
+from django.db.models import F, ExpressionWrapper, fields, Sum
 @admin.register(EntryExit)
 class EntryExitAdmin(UnfoldModalAdmin, ExportActionModelAdmin):
-    list_display = ('student__rollno', 'student', 'student__department', 'student__section', 'entry_time', 'exit_time', 'time_spend_in_lab')
+    list_display = ('rollno', 'student', 'department', 'section', 'lab', 'entry_time', 'exit_time', 'time_spend_in_lab')
     search_fields = ('student__rollno__iexact', 'student__name')
     search_help_text = 'Search by student rollno or name'
     change_form_show_cancel_button = True
     list_filter_submit = True
     list_filter = (
         ("entry_time", RangeDateFilter),  # Date filter
+        'lab',
         'student__department',
         ('student__section', MultipleChoicesDropdownFilter)
-        # ("field_F", RangeDateTimeFilter),  # Datetime filter
     )
     resource_class = EntryExitResource
     export_form_class = SelectableFieldsExportForm
+
+    def section(self, obj):
+        return obj.student.section
+    
+    def department(self, obj):
+        return obj.student.department.name
+    
+    def rollno(self, obj):
+        return obj.student.rollno
+    

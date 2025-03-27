@@ -48,6 +48,7 @@ class Student(models.Model):
     bloodgroup = models.CharField(max_length=10, choices=bloodgroup_choices)
     gender = models.CharField(choices=gender_choices, max_length=10)
     address = models.TextField()
+    admission_year = models.PositiveSmallIntegerField()
     barcode = models.ImageField(upload_to='barcodes/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
     profile_image = models.ImageField(upload_to=getFilename, null=True, blank=True, default='students/default.jpg')
@@ -61,7 +62,12 @@ class Student(models.Model):
         return self.name
 
 class EntryExit(models.Model):
+    lab_choices = [
+        ('Lab-1' , 'Lab-1'),
+        ('Lab-2' , 'Lab-2'),
+    ]
     student = models.ForeignKey('Student', on_delete=models.CASCADE)
+    lab = models.CharField(choices=lab_choices, max_length=10)
     entry_time = models.DateTimeField(auto_now_add=True)
     exit_time = models.DateTimeField(null=True, blank=True) 
 

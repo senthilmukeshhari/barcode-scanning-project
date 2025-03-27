@@ -15,16 +15,36 @@
 </header>
 {% endblock %} {% block content %}
 <div class="container">
+  <div class="select-container">
+    <label>
+      Select Lab : 
+      <select name="lab" id="lab">
+        <option value="">-- Select Lab --</option>
+        <option value="Lab-1">Lab - 1</option>
+        <option value="Lab-2">Lab - 2</option>
+      </select>
+    </label>
+    <label>
+      Select Year :
+      <select name="year" id="year">
+        <option value="">-- Select Year --</option>
+        <option value="1">I Year</option>
+        <option value="2">II Year</option>
+        <option value="3">III Year</option>
+      </select>
+    </label>
+  </div>
+  
   <label for="scanInput">Scan Barcoede <span id="barcode"></span></label>
   <div class="barcode-scan-group">
     <input
-      type="text"
+      type="number"
       id="scanInput"
       placeholder="Scan barcode"
       autofocus="true"
       onkeydown="scanningProcess(event)"
-      readonly
-    />
+      />
+      <!-- readonly -->
     <!-- <button type="button" id="scanBtn" onclick="scanningProcess(event)">
       Scan
     </button> -->
@@ -60,23 +80,44 @@
 <script>
   const scaninputEl = document.getElementById("scanInput");
   const barcode = document.getElementById("barcode");
+  const labEl = document.getElementById('lab');
+  const yearEl = document.getElementById('year');
   var barcodeValue = '';
 
   const scanningProcess = (e) => {
-    if (e.key != 'Enter') {
-      barcodeValue += e.key;
+    if(e.key != "Enter"){
+      barcodeValue += e.key.replace(/\D/g, "");
     }
+
     if (e.key === "Enter" || e.type === "click") {
-      // const barcodeVal = scaninputEl.value;
-      console.log(barcodeValue);
+      console.log(barcodeValue)
+      if (labEl.value == '') {
+        alert('Please choose any Lab.');
+        scaninputEl.value = "";
+        barcode.innerText = "";
+        scaninputEl.focus();
+        return
+      }
+      if (yearEl.value == '') {
+        alert('Please choose any year.');
+        scaninputEl.value = "";
+        barcode.innerText = "";
+        scaninputEl.focus();
+        return
+      }
       barcode.innerText = "( " + barcodeValue + " )";
+
       fetch("{% url 'scan_barcode' %}", {
         method: "POST",
         headers: {
           "X-CSRFToken": "{{csrf_token}}",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ barcode: barcodeValue }),
+        body: JSON.stringify({ 
+          barcode: barcodeValue,
+          lab : labEl.value,
+          year : yearEl.value
+        }),
       })
         .then((res) => res.json())
         .then((res) => {
@@ -84,6 +125,7 @@
           if(res.status == 'error'){
             alert(res.message)
             scaninputEl.value = "";
+            barcode.innerText = "";
             scaninputEl.focus();
             return
           }
@@ -109,12 +151,13 @@
           // Update lab status and users in lab
           document.getElementById("labStatus").innerText = data.lab_status;
           document.getElementById("usersInLab").innerText = data.students_in_lab;
-
+            console.log(data)
           // Update live notifications
           const notifications = document.getElementById("notifications");
           const notification = document.createElement("div");
           notification.className = "notification";
-          notification.innerText = `User ${data.student} ${res.status === "entry" ? "entered" : "exited"} the lab.`;
+          // notification.innerText = `User ${data.student} ${res.status === "entry" ? "entered" : "exited"} the lab.`;
+          notification.innerText = data.notification;
           notifications.prepend(notification);
 
           scaninputEl.value = "";

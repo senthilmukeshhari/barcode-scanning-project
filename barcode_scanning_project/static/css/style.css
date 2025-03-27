@@ -169,3 +169,16 @@ header {
     background-color: rgba(255, 0, 0, 0.137);
     color: darkred;
 }
+
+select{
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    padding: 6px 30px;
+    font-size: 1rem;
+    margin: 10px;
+}
+/* 
+.select-container{
+    display: flex;
+    justify-content: space-evenly;
+} */

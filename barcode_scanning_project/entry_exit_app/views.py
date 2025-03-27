@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from entry_exit_app.models import EntryExit, Student, Department
 from django.utils.timezone import now
 from django.http import JsonResponse
+from datetime import datetime
 import json
 
 def get_status_and_users_in_lab():
@@ -17,8 +18,8 @@ def get_initial_notifications():
     notifications = []
     for entry in entries:
         if entry.exit_time:
-            notifications.append(f"User {entry.student.rollno} exited the lab.")
-        notifications.append(f"User {entry.student.rollno} entered the lab.")
+            notifications.append(f"Student {entry.student.rollno} exited the {entry.lab}.")
+        notifications.append(f"Student {entry.student.rollno} entered the {entry.lab}.")
     return notifications
 
 def context_data():
@@ -42,10 +43,10 @@ def update_context_with_student_data(context, entry_exit_log, status):
     context['department'] = entry_exit_log.student.department.name
     context['section'] = entry_exit_log.student.section
     context['profile_image'] = entry_exit_log.student.profile_image.url
-    context['entry_time'] = entry_exit_log.entry_time.strftime('%Y-%m-%d %H:%M:%S') if status == 'entry' else None
+    context['entry_time'] = entry_exit_log.entry_time.strftime('%Y-%m-%d %H:%M:%S') if status == 'enter' else None
     context['exit_time'] = entry_exit_log.exit_time.strftime('%Y-%m-%d %H:%M:%S') if status == 'exit' else None
     context['students_in_lab'], context['lab_status'] = get_status_and_users_in_lab()
-    context['notification'] = f"User {entry_exit_log.student.rollno} {status}ed the lab."
+    context['notification'] = f"Student {entry_exit_log.student.rollno} {status}ed the {entry_exit_log.lab}."
 
 def scan_barcode(request):
     context = context_data()
@@ -53,9 +54,19 @@ def scan_barcode(request):
         try:
             data = json.loads(request.body)
             barcode = data['barcode']
+            lab = data['lab']
+            year = int(data['year'])
+            current_year = datetime.now().year
+            print(lab, year)
             student = get_object_or_404(Student, rollno=barcode, is_active=True)
-
-            open_log = EntryExit.objects.filter(student=student, exit_time__isnull=True).first()
+            if(student.admission_year != current_year - year):
+                year = 'I' if (year == 1) else 'II' if (year == 2) else 'III'
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Only allow {year} year students.',
+                }, status=400)
+            
+            open_log = EntryExit.objects.filter(student=student, lab = lab, exit_time__isnull=True).first()
             if open_log:
                 open_log.exit_time = now()
                 open_log.save()
@@ -66,8 +77,8 @@ def scan_barcode(request):
                     'data': context
                 }, status=201)
 
-            new_entry = EntryExit.objects.create(student=student, entry_time=now())
-            update_context_with_student_data(context, new_entry, 'entry')
+            new_entry = EntryExit.objects.create(student=student, lab = lab, entry_time=now())
+            update_context_with_student_data(context, new_entry, 'enter')
             return JsonResponse({
                 'status': 'entry',
                 'message': 'Entry logged successfully.',
