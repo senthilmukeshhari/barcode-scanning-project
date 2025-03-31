@@ -15,13 +15,15 @@
 </header>
 {% endblock %} {% block content %}
 <div class="container">
-  <div class="select-container">
+  <form class="select-container" method="post">
+    {% csrf_token %}
     <label>
       Select Lab : 
-      <select name="lab" id="lab">
+      <select name="lab" id="lab" onchange="this.form.submit()">
         <option value="">-- Select Lab --</option>
-        <option value="Lab-1">Lab - 1</option>
-        <option value="Lab-2">Lab - 2</option>
+        {% for lab in labs %}
+        <option value="{{lab.id}}" {% if selected_lab == lab.id|stringformat:"s" %}selected{% endif %}>{{lab.name}} ({{lab.department.name}})</option>
+        {% endfor %}
       </select>
     </label>
     <label>
@@ -33,7 +35,7 @@
         <option value="3">III Year</option>
       </select>
     </label>
-  </div>
+  </form>
   
   <label for="scanInput">Scan Barcoede <span id="barcode"></span></label>
   <div class="barcode-scan-group">
@@ -44,16 +46,13 @@
       autofocus="true"
       onkeydown="scanningProcess(event)"
       />
-      <!-- readonly -->
-    <!-- <button type="button" id="scanBtn" onclick="scanningProcess(event)">
-      Scan
-    </button> -->
   </div>
 
   <div id="resultContainer">
     <!-- This will be populated with student details after scanning -->
   </div>
 
+  {% if lab_status is not none and students_in_lab is not none %}
   <!-- Dashboard Section -->
   <div class="dashboard">
     <div class="card">
@@ -65,17 +64,19 @@
       <p id="usersInLab">{{students_in_lab}}</p>
     </div>
   </div>
+  {% endif %}
 
   <!-- Live Notifications Section -->
   <div class="live-notifications">
     <h4>Today Live Notifications</h4>
-    <div id="notifications">
-      {% for notification in notifications %}
-      <div class="notification">{{ notification }}</div>
-      {% endfor %}
+      <div id="notifications">
+        {% for notification in notifications %}
+        <div class="notification">{{ notification }}</div>
+        {% endfor %}
+      </div>
     </div>
   </div>
-</div>
+
 {% endblock %} {% block scripts %}
 <script>
   const scaninputEl = document.getElementById("scanInput");
@@ -96,6 +97,7 @@
         scaninputEl.value = "";
         barcode.innerText = "";
         scaninputEl.focus();
+        barcodeValue = '';
         return
       }
       if (yearEl.value == '') {
@@ -103,6 +105,7 @@
         scaninputEl.value = "";
         barcode.innerText = "";
         scaninputEl.focus();
+        barcodeValue = '';
         return
       }
       barcode.innerText = "( " + barcodeValue + " )";

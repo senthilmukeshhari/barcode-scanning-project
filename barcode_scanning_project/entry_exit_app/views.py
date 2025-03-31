@@ -1,32 +1,32 @@
 from django.shortcuts import render, get_object_or_404
-from entry_exit_app.models import EntryExit, Student, Department
+from entry_exit_app.models import EntryExit, Student, Department, Lab
 from django.utils.timezone import now
 from django.http import JsonResponse
 from datetime import datetime
 import json
 
-def get_status_and_users_in_lab():
+def get_status_and_users_in_lab(lab):
     today = now().date()
-    students = EntryExit.objects.filter(entry_time__date=today,  exit_time__isnull=True)
-    students_in_lab = EntryExit.objects.filter(entry_time__date=today).count()
-    lab_status =f'There are {students.count()} user(s) in the lab.' if students.count() > 0 else 'No one in the lab currently.'
+    students = EntryExit.objects.filter(lab=lab, entry_time__date=today, exit_time__isnull=True)
+    students_in_lab = EntryExit.objects.filter(lab=lab, entry_time__date=today).count()
+    lab_status =f'There are {students.count()} user(s) in the {lab.name}.' if students.count() > 0 else f'No one in the {lab.name} currently.'
     return students_in_lab, lab_status
 
-def get_initial_notifications():
+def get_initial_notifications(lab):
     today = now().date()
-    entries = EntryExit.objects.filter(entry_time__date=today).order_by('-entry_time')
+    entries = EntryExit.objects.filter(lab=lab, entry_time__date=today).order_by('-entry_time')
     notifications = []
     for entry in entries:
         if entry.exit_time:
-            notifications.append(f"Student {entry.student.rollno} exited the {entry.lab}.")
-        notifications.append(f"Student {entry.student.rollno} entered the {entry.lab}.")
+            notifications.append(f"Student {entry.student.rollno} exited the {entry.lab.name}.")
+        notifications.append(f"Student {entry.student.rollno} entered the {entry.lab.name}.")
     return notifications
 
-def context_data():
-    students_in_lab, lab_status = get_status_and_users_in_lab()
-    notifications = get_initial_notifications()
+def context_data(lab_id):
+    lab = Lab.objects.get(id=lab_id)
+    students_in_lab, lab_status = get_status_and_users_in_lab(lab)
+    notifications = get_initial_notifications(lab)
     context = {
-        'website_name' : 'College Lab Entry/Exit System',
         'students_in_lab' : students_in_lab,
         'lab_status': lab_status,
         'notifications': notifications
@@ -34,10 +34,19 @@ def context_data():
     return context
     
 def home(request):
-    context = context_data()
+    context = {
+        'website_name' : 'College Lab Entry/Exit System'
+    }
+    if request.method == 'POST':
+        if request.POST['lab']:
+            lab_id = request.POST['lab']
+            context = context_data(lab_id)
+            context['selected_lab'] = lab_id
+            print(context)
+    context['labs'] = Lab.objects.all()
     return render(request, 'home.html', context=context)
 
-def update_context_with_student_data(context, entry_exit_log, status):
+def update_context_with_student_data(context, lab, entry_exit_log, status):
     context['student'] = entry_exit_log.student.rollno
     context['student_name'] = entry_exit_log.student.name
     context['department'] = entry_exit_log.student.department.name
@@ -45,20 +54,19 @@ def update_context_with_student_data(context, entry_exit_log, status):
     context['profile_image'] = entry_exit_log.student.profile_image.url
     context['entry_time'] = entry_exit_log.entry_time.strftime('%Y-%m-%d %H:%M:%S') if status == 'enter' else None
     context['exit_time'] = entry_exit_log.exit_time.strftime('%Y-%m-%d %H:%M:%S') if status == 'exit' else None
-    context['students_in_lab'], context['lab_status'] = get_status_and_users_in_lab()
-    context['notification'] = f"Student {entry_exit_log.student.rollno} {status}ed the {entry_exit_log.lab}."
+    context['students_in_lab'], context['lab_status'] = get_status_and_users_in_lab(lab)
+    context['notification'] = f"Student {entry_exit_log.student.rollno} {status}ed the {entry_exit_log.lab.name}."
 
 def scan_barcode(request):
-    context = context_data()
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             barcode = data['barcode']
-            lab = data['lab']
+            lab_id = data['lab']
             year = int(data['year'])
             current_year = datetime.now().year
-            print(lab, year)
             student = get_object_or_404(Student, rollno=barcode, is_active=True)
+
             if(student.admission_year != current_year - year):
                 year = 'I' if (year == 1) else 'II' if (year == 2) else 'III'
                 return JsonResponse({
@@ -66,11 +74,14 @@ def scan_barcode(request):
                     'message': f'Only allow {year} year students.',
                 }, status=400)
             
+            context = context_data(lab_id)
+            lab = Lab.objects.get(id=lab_id)
             open_log = EntryExit.objects.filter(student=student, lab = lab, exit_time__isnull=True).first()
+
             if open_log:
                 open_log.exit_time = now()
                 open_log.save()
-                update_context_with_student_data(context, open_log, 'exit')
+                update_context_with_student_data(context, lab, open_log, 'exit')
                 return JsonResponse({
                     'status': 'exit',
                     'message': 'Exit logged successfully.',
@@ -78,7 +89,7 @@ def scan_barcode(request):
                 }, status=201)
 
             new_entry = EntryExit.objects.create(student=student, lab = lab, entry_time=now())
-            update_context_with_student_data(context, new_entry, 'enter')
+            update_context_with_student_data(context, lab, new_entry, 'enter')
             return JsonResponse({
                 'status': 'entry',
                 'message': 'Entry logged successfully.',
@@ -87,12 +98,14 @@ def scan_barcode(request):
 
         except json.JSONDecodeError:
             return JsonResponse({'message': 'Invalid JSON data'}, status=400)
+        
         except Student.DoesNotExist:
             print('Does not : ')
             return JsonResponse({
                 'status': 'error',
                 'message': 'barcode'
             }, status=400)
+        
         except Exception as e:
             print('error : ', e)
             return JsonResponse({

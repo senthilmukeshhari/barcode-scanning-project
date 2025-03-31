@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Department, Student, EntryExit
+from .models import Department, Student, EntryExit, Lab
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from import_export.admin import ImportExportModelAdmin,ExportActionModelAdmin
@@ -86,4 +86,15 @@ class EntryExitAdmin(UnfoldModalAdmin, ExportActionModelAdmin):
     
     def rollno(self, obj):
         return obj.student.rollno
-    
+
+@admin.register(Lab)
+class LabAdmin(UnfoldModalAdmin):
+    list_display = ('name', 'department', 'in_charge')
+    search_fields = ('name', 'in_change')
+    search_help_text = "Search by lab name or in charge name"
+    list_filter = ('department__name',)
+    change_form_show_cancel_button = True
+    list_filter_submit = True
+
+    def department(self, obj):
+        return obj.student.department.name

@@ -67,7 +67,7 @@ class EntryExit(models.Model):
         ('Lab-2' , 'Lab-2'),
     ]
     student = models.ForeignKey('Student', on_delete=models.CASCADE)
-    lab = models.CharField(choices=lab_choices, max_length=10)
+    lab = models.ForeignKey('Lab', on_delete=models.CASCADE)
     entry_time = models.DateTimeField(auto_now_add=True)
     exit_time = models.DateTimeField(null=True, blank=True) 
 
@@ -92,3 +92,11 @@ class EntryExit(models.Model):
                 parts.append(f"{seconds} seconds")
             time_spend = ' '.join(parts)
         return time_spend
+    
+class Lab(models.Model):
+    name = models.CharField(max_length=50)
+    department = models.ForeignKey('Department', on_delete=models.CASCADE)
+    in_charge = models.CharField(max_length=50)
+
+    def __str__(self):
+        return str(self.name)
