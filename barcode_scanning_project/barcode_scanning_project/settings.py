@@ -23,6 +23,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'entry_exit_app',
     "unfold",  # before django.contrib.admin
     "unfold.contrib.import_export",  # optional, if django-import-export package is used
     "unfold.contrib.filters",  # optional, if special filters are needed
@@ -37,7 +38,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'entry_exit_app',
 ]
 
 MIDDLEWARE = [

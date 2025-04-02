@@ -87,6 +87,81 @@ class EntryExitAdmin(UnfoldModalAdmin, ExportActionModelAdmin):
     def rollno(self, obj):
         return obj.student.rollno
 
+    
+    change_list_template = "admin/entry_exit_app/entryexit/change_list.html"
+
+    def changelist_view(self, request, extra_context=None):
+        queryset = self.get_queryset(request)
+        extra_context = extra_context or {}
+
+        from datetime import timedelta
+        from django.db.models import F, ExpressionWrapper, fields, Count
+        from datetime import datetime
+        from django.db.models.functions import TruncDate
+
+        # **🔹 1. Only Show "Total Lab Hours per Student" Chart When Searching**
+        student_labels = []
+        student_data = []
+        
+        if "q" in request.GET and request.GET["q"]:  # Check if search is performed
+            student_hours = queryset.annotate(
+                duration=ExpressionWrapper(
+                    (F("exit_time") - F("entry_time")),
+                    output_field=fields.DurationField(),
+                )
+            ).values("student__name", "duration")
+
+            for entry in student_hours:
+                if entry["duration"] is not None:
+                    student_labels.append(entry["student__name"])
+                    student_data.append(entry["duration"].total_seconds() / 3600)  # Convert to hours
+
+        # **🔹 2. Daily Lab Usage Trend**
+        daily_usage = (
+            queryset.annotate(date=TruncDate("entry_time"))
+            .values("date")
+            .annotate(total_visits=Count("id"))
+            .order_by("date")
+        )
+        daily_labels = [entry["date"].strftime("%Y-%m-%d") for entry in daily_usage]
+        daily_data = [entry["total_visits"] for entry in daily_usage]
+
+        # **🔹 3. Lab-wise Usage Report**
+        lab_usage = queryset.values("lab__name").annotate(total_entries=Count("id")).order_by("-total_entries")
+        lab_labels = [entry["lab__name"] for entry in lab_usage]
+        lab_data = [entry["total_entries"] for entry in lab_usage]
+
+        # **🔹 4. Entry vs Exit Count per Lab**
+        entry_exit_count = queryset.values("lab__name").annotate(
+            total_entries=Count("entry_time"),
+            total_exits=Count("exit_time")
+        ).order_by("lab__name")
+
+        entry_exit_labels = [entry["lab__name"] for entry in entry_exit_count]
+        entry_data = [entry["total_entries"] for entry in entry_exit_count]
+        exit_data = [entry["total_exits"] for entry in entry_exit_count]
+
+        # **🔹 5. Student with Most Lab Visits (Leaderboard)**
+        student_visits = queryset.values("student__name").annotate(total_visits=Count("id")).order_by("-total_visits")[:5]
+
+        leaderboard = [
+            {"rank": index + 1, "student": entry["student__name"], "visits": entry["total_visits"]}
+            for index, entry in enumerate(student_visits)
+        ]
+
+        # **🔹 Pass Data to Template**
+        extra_context.update({
+            "student_labels": student_labels if student_labels else None,
+            "student_data": student_data if student_data else None,
+            "daily_labels": daily_labels, "daily_data": daily_data,
+            "lab_labels": lab_labels, "lab_data": lab_data,
+            "entry_exit_labels": entry_exit_labels, "entry_data": entry_data, "exit_data": exit_data,
+            "leaderboard": leaderboard,
+        })
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+
 @admin.register(Lab)
 class LabAdmin(UnfoldModalAdmin):
     list_display = ('name', 'department', 'in_charge')

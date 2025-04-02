@@ -35,8 +35,8 @@ def generate_students(initial_value, n, department, section, admission_year):
             print(f'Alreay Exisit Student of {i}...')
 
 def generate_labs():
-    for i in range(i, 2):
-        name = 'Lab-' + i
+    for i in range(1, 2):
+        name = 'Lab-' + str(i)
         department = Department.objects.get(id=1)
         in_charge = fake.name()
         lab_obj = Lab.objects.filter(name=name, department=department)

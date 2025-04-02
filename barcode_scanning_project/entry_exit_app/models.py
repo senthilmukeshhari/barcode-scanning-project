@@ -93,6 +93,11 @@ class EntryExit(models.Model):
             time_spend = ' '.join(parts)
         return time_spend
     
+    def total_hours_spent(self):
+        if self.exit_time:
+            return round((self.exit_time - self.entry_time).total_seconds() / 3600, 2)
+        return 0
+    
 class Lab(models.Model):
     name = models.CharField(max_length=50)
     department = models.ForeignKey('Department', on_delete=models.CASCADE)

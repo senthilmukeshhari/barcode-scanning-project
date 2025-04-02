@@ -1,0 +1,185 @@
+{% extends "unfold/change_list.html" %}
+
+{% block content %}
+<style>
+    .chart-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .chart-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+    }
+    
+    .chart-box {
+        flex: 1;
+        min-width: 45%;
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    canvas {
+        width: 100%;
+        height: 300px !important;
+    }
+</style>
+
+<div class="chart-container">
+    <div class="chart-row">
+        {% if student_labels and student_data %}
+        <div class="chart-box">
+            <h1>Total Lab Hours per Student</h1>
+            <div>
+                <canvas id="labHoursChart"></canvas>
+            </div>
+        </div>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                var ctx = document.getElementById("labHoursChart").getContext("2d");
+                var chart = new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels: {{ student_labels|safe }},
+                        datasets: [{
+                            label: "Total Lab Hours",
+                            data: {{ student_data|safe }},
+                            backgroundColor: "rgba(54, 162, 235, 0.6)",
+                            borderColor: "rgba(54, 162, 235, 1)",
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            });
+        </script>
+        {% endif %}
+        
+        <div class="chart-box">
+            <h1>Daily Lab Usage Trend</h1>
+            <canvas id="dailyUsageChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-row">
+
+        <div class="chart-box">
+            <h3>Lab-wise Usage Report</h3>
+            <canvas id="labUsageChart"></canvas>
+        </div>
+
+        <div class="chart-box">
+            <h3>Entry vs Exit Count per Lab</h3>
+            <canvas id="entryExitChart"></canvas>
+        </div>
+    </div>
+    
+</div>
+
+    <h3>Top 5 Students with Most Visits</h3>
+    <table border="1">
+        <tr>
+            <th>Rank</th>
+            <th>Student</th>
+            <th>Total Visits</th>
+        </tr>
+        {% for student in leaderboard %}
+        <tr>
+            <td>{{ student.rank }}</td>
+            <td>{{ student.student }}</td>
+            <td>{{ student.visits }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {{ block.super }}
+
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function createChart(ctx, type, labels, data, label, backgroundColor, borderColor) {
+            new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // createChart(
+        //     document.getElementById('studentHoursChart').getContext('2d'),
+        //     'bar',
+        //     {{ student_labels|safe }},
+        //     {{ student_data|safe }},
+        //     'Total Hours Spent',
+        //     'rgba(54, 162, 235, 0.6)',
+        //     'rgba(54, 162, 235, 1)'
+        // );
+
+        createChart(
+            document.getElementById('dailyUsageChart').getContext('2d'),
+            'line',
+            {{ daily_labels|safe }},  <!-- Ensures JSON-safe rendering -->
+            {{ daily_data|safe }},
+            'Total Students per Day',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(75, 192, 192, 1)'
+        );
+
+
+        createChart(
+            document.getElementById('labUsageChart').getContext('2d'),
+            'pie',
+            {{ lab_labels|safe }},
+            {{ lab_data|safe }},
+            'Lab Usage Distribution',
+            ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)'],
+            ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)']
+        );
+
+        new Chart(document.getElementById('entryExitChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: {{ entry_exit_labels|safe }},
+                datasets: [
+                    {
+                        label: 'Entries',
+                        data: {{ entry_data|safe }},
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Exits',
+                        data: {{ exit_data|safe }},
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    </script>
+{% endblock %}
