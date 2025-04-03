@@ -62,6 +62,7 @@ class DepartmentAdmin(UnfoldModalAdmin, ExportActionModelAdmin):
 
 
 from django.db.models import F, ExpressionWrapper, fields, Sum
+from django.utils.timezone import now
 @admin.register(EntryExit)
 class EntryExitAdmin(UnfoldModalAdmin, ExportActionModelAdmin):
     list_display = ('rollno', 'student', 'department', 'section', 'lab', 'entry_time', 'exit_time', 'time_spend_in_lab')
@@ -102,63 +103,44 @@ class EntryExitAdmin(UnfoldModalAdmin, ExportActionModelAdmin):
         # **🔹 1. Only Show "Total Lab Hours per Student" Chart When Searching**
         student_labels = []
         student_data = []
+        daily_labels = []
+        daily_data = []
         
         if "q" in request.GET and request.GET["q"]:  # Check if search is performed
-            student_hours = queryset.annotate(
-                duration=ExpressionWrapper(
-                    (F("exit_time") - F("entry_time")),
-                    output_field=fields.DurationField(),
-                )
-            ).values("student__name", "duration")
+            if request.GET["q"].isdigit():
+                rollno = request.GET["q"]
+                queryset = queryset.filter(student__rollno = rollno)
+                if queryset:
+                    from entry_exit_app import views
+                    student_labels , student_data = views.total_lab_hours_per_student_current_month(queryset)
 
-            for entry in student_hours:
-                if entry["duration"] is not None:
-                    student_labels.append(entry["student__name"])
-                    student_data.append(entry["duration"].total_seconds() / 3600)  # Convert to hours
+        if request.GET.get("lab__id__exact"):  # Check if lab filter is applied
+            # **🔹 2. Daily Lab Usage Trend**
+            # Get data for the last 7 days
+            lab_id = request.GET.get("lab__id__exact")
+            last_week = now() - timedelta(days=7)
+            print(last_week)
+             # Filter for a specific lab and group by date
+            daily_usage = (
+                EntryExit.objects.filter(entry_time__gte=last_week, lab__id=lab_id)
+                .annotate(date=TruncDate("entry_time"))
+                .values("date")
+                .annotate(total_visits=Count("id"))
+                .order_by("date")
+            ) 
 
-        # **🔹 2. Daily Lab Usage Trend**
-        daily_usage = (
-            queryset.annotate(date=TruncDate("entry_time"))
-            .values("date")
-            .annotate(total_visits=Count("id"))
-            .order_by("date")
-        )
-        daily_labels = [entry["date"].strftime("%Y-%m-%d") for entry in daily_usage]
-        daily_data = [entry["total_visits"] for entry in daily_usage]
-
-        # **🔹 3. Lab-wise Usage Report**
-        lab_usage = queryset.values("lab__name").annotate(total_entries=Count("id")).order_by("-total_entries")
-        lab_labels = [entry["lab__name"] for entry in lab_usage]
-        lab_data = [entry["total_entries"] for entry in lab_usage]
-
-        # **🔹 4. Entry vs Exit Count per Lab**
-        entry_exit_count = queryset.values("lab__name").annotate(
-            total_entries=Count("entry_time"),
-            total_exits=Count("exit_time")
-        ).order_by("lab__name")
-
-        entry_exit_labels = [entry["lab__name"] for entry in entry_exit_count]
-        entry_data = [entry["total_entries"] for entry in entry_exit_count]
-        exit_data = [entry["total_exits"] for entry in entry_exit_count]
-
-        # **🔹 5. Student with Most Lab Visits (Leaderboard)**
-        student_visits = queryset.values("student__name").annotate(total_visits=Count("id")).order_by("-total_visits")[:5]
-
-        leaderboard = [
-            {"rank": index + 1, "student": entry["student__name"], "visits": entry["total_visits"]}
-            for index, entry in enumerate(student_visits)
-        ]
+            # Format labels and data
+            daily_labels = [entry["date"].strftime("%Y-%m-%d") for entry in daily_usage]
+            daily_data = [entry["total_visits"] for entry in daily_usage]
 
         # **🔹 Pass Data to Template**
         extra_context.update({
             "student_labels": student_labels if student_labels else None,
             "student_data": student_data if student_data else None,
-            "daily_labels": daily_labels, "daily_data": daily_data,
-            "lab_labels": lab_labels, "lab_data": lab_data,
-            "entry_exit_labels": entry_exit_labels, "entry_data": entry_data, "exit_data": exit_data,
-            "leaderboard": leaderboard,
+            "daily_labels": daily_labels if daily_labels else None, 
+            "daily_data": daily_data if daily_data else None,
         })
-
+        print(extra_context)
         return super().changelist_view(request, extra_context=extra_context)
 
 

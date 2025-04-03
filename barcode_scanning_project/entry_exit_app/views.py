@@ -112,3 +112,120 @@ def scan_barcode(request):
                 'status': 'error',
                 'message': 'Invalid barcode'
             }, status=400)
+
+
+from datetime import timedelta
+from django.db.models import F, ExpressionWrapper, fields, Count
+from datetime import datetime
+from django.db.models.functions import TruncDate
+
+def dashboard_callback(request, context):
+    queryset = EntryExit.objects.all()
+    # **🔹 1. Lab-wise Usage Report** # Aggregate lab usage data
+     # Aggregate lab usage data grouped by department
+    lab_usage = (
+        EntryExit.objects.values("lab__name", "lab__department__name", "lab__in_charge")
+        .annotate(total_entries=Count("id"))
+        .order_by("lab__department__name", "-total_entries")  # Sort by department, then total entries
+    )
+    lab_labels = []
+    lab_data = []
+
+    for entry in lab_usage:
+        lab_labels.append(entry["lab__name"] + " (" + entry["lab__department__name"] + ")")
+        lab_data.append(entry["total_entries"])
+
+    # **🔹 2. Student with Most Lab Visits (Leaderboard)**
+    student_leaderboard = (
+        EntryExit.objects.values("student__name", "student__rollno")
+        .annotate(total_visits=Count("id"))
+        .order_by("-total_visits")[:5]  # Get top 5 students
+    )
+
+    leaderboard = [
+        [ index + 1, entry["student__name"], entry["student__rollno"], entry["total_visits"] ] for index, entry in enumerate(student_leaderboard)
+    ]
+
+    last_week = now() - timedelta(days=7)
+    daily_usage = (
+        queryset.filter(entry_time__gte=last_week)
+        .annotate(date=TruncDate("entry_time"))
+        .values("date")
+        .annotate(total_visits=Count("id"))
+        .order_by("date")
+    )
+
+    # Prepare Labels & Data
+    daily_labels = [entry["date"].strftime("%Y-%m-%d") for entry in daily_usage]
+    daily_data = [entry["total_visits"] for entry in daily_usage]
+
+    context.update(
+        {
+            "lab_labels": lab_labels, "lab_data": lab_data,
+            "table_data" : {
+                "headers" : ["Rank", "Student Name", "Student Rollno", "Total Visits"],
+                "rows": leaderboard,
+            }
+        }
+    )
+
+    return context
+
+import datetime
+import calendar
+from django.shortcuts import render
+from django.utils.timezone import now
+from django.db.models import Sum, F, ExpressionWrapper, DurationField
+def total_lab_hours_per_student_current_month(queryset):
+    # Determine the start (Monday) and end (Sunday) of the current week
+    today = now().date()
+    start_of_week = today - datetime.timedelta(days=today.weekday())  # Monday
+    end_of_week = start_of_week + datetime.timedelta(days=6)           # Sunday
+
+    # Filter records for the current week and annotate each record with day and duration
+    qs = queryset.filter(
+        entry_time__date__gte=start_of_week,
+        entry_time__date__lte=end_of_week
+    ).annotate(
+        day=TruncDate('entry_time'),
+        duration=ExpressionWrapper(F('exit_time') - F('entry_time'), output_field=DurationField())
+    )
+
+    # Aggregate total duration per student per day
+    aggregation = qs.values('student__name', 'day').annotate(
+        total_duration=Sum('duration')
+    ).order_by('student__name', 'day')
+
+    # Build a dictionary: { student_name: { day_str: total_hours, ... }, ... }
+    data = {}
+    for entry in aggregation:
+        student = entry['student__name']
+        day_str = entry['day'].strftime('%Y-%m-%d')
+        hours = entry['total_duration'].total_seconds() / 3600 if entry['total_duration'] else 0
+        if hours < 0:
+            hours = 0
+        if student not in data:
+            data[student] = {}
+        data[student][day_str] = hours
+
+    # Create a list of all days in the current week (as strings)
+    days = []
+    current_day = start_of_week
+    while current_day <= end_of_week:
+        days.append(current_day.strftime('%Y-%m-%d'))
+        current_day += datetime.timedelta(days=1)
+
+    # Prepare datasets for each student: one dataset per student for the bar chart
+    datasets = []
+    # List of colors for bars (will cycle if there are more students)
+    colors = ["#4A90E2", "#50E3C2", "#F5A623", "#9013FE", "#D0021B", "#B8E986"]
+    for i, (student, day_hours) in enumerate(data.items()):
+        dataset = {
+            "label": student,
+            "data": [day_hours.get(day, 0) for day in days],
+            "backgroundColor": colors[i % len(colors)],
+            "borderWidth": 1
+        }
+        datasets.append(dataset)
+
+    return days, datasets
